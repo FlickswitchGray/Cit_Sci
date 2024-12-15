@@ -2,6 +2,9 @@ library(shiny)
 library(leaflet)
 library(RColorBrewer)
 
+
+
+# Read in data
 # Example chloropleth map
 
 ui <- bootstrapPage(
