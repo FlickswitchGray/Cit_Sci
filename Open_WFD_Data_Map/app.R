@@ -19,7 +19,7 @@ library(tidyverse)
                               value = 2019, step = 1, sep = ""
                               
                   ),
-                  selectInput("OP_Select", "Select Operational Catchment", sort(unique(merge$OPCAT_NAME))
+                  selectInput("OP_Select", "Select WFD Operational Catchment", sort(unique(merge$OPCAT_NAME))
                   ),
                   selectInput("Class_Element", "Select Classification Item", sort(unique(merge$Classification.Item)),
                               selected = "Overall Water Body"
