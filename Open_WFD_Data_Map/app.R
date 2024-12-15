@@ -1,4 +1,4 @@
-# WFD map for the people
+# Map which visualises WFD classifications by Waterbody
 
 library(sf)
 library(tidyverse)
@@ -9,9 +9,6 @@ library(tidyverse)
 
   merge$Year <- as.numeric(merge$Year)
   
-  
-  merge <- merge |> filter(OPCAT_NAME=="Parrett")
-
   # Begin the app  
   
   ui <- bootstrapPage(
@@ -19,12 +16,13 @@ library(tidyverse)
     leafletOutput("map", width = "100%", height = "100%"),
     absolutePanel(top = 10, right = 10,
                   sliderInput("seLect", "Year", min=min(merge$Year), max=max(merge$Year),
-                              value = "2022", step = 1, sep = ""
+                              value = 2019, step = 1, sep = ""
                               
                   ),
                   selectInput("OP_Select", "Select Operational Catchment", sort(unique(merge$OPCAT_NAME))
                   ),
-                  selectInput("Class_Element", "Select Classification Item", sort(unique(merge$Classification.Item))
+                  selectInput("Class_Element", "Select Classification Item", sort(unique(merge$Classification.Item)),
+                              selected = "Overall Water Body"
                   )
     )
   )
@@ -34,23 +32,22 @@ library(tidyverse)
     
     # Define WFD palette
     pal <- colorFactor(
-      palette = c("#ADE8F4", "seagreen", "seagreen", "yellow", "#b71105","orange", "red"),
-      levels = c("High", "Good", "Supports Good", "Moderate", "Bad", "Poor", "Fail"),
+      palette = c("#ADE8F4", "seagreen", "seagreen", "yellow", "yellow", "#b71105","orange", "red", "red"),
+      levels = c("High", "Good", "Supports Good", "Moderate", "Moderate or less", "Bad", "Poor", "Fail", "Does Not Support Good"),
       na.color = "transparent"
     )
     
     # Reactive expression for the data subsetted to what the user selected
     filteredData <- reactive({
                 merge %>% filter(OPCAT_NAME == input$OP_Select & Classification.Item == input$Class_Element
-                                  & Year == input$seLect)
+                                  & Year == as.numeric(input$seLect))
                                         })
-        
-
+    
     output$map <- renderLeaflet({
       # Basemap set up: Use leaflet() here, and only include aspects of the map that
       # won't need to change dynamically (at least, not unless the
       # entire map is being torn down and recreated).
-      leaflet(WFD) %>% addTiles(providers$Stadia) 
+      leaflet(merge) %>% addTiles()
     })
     
     # Interactive changes to the map should be performed in
@@ -58,33 +55,26 @@ library(tidyverse)
     # should be managed in its own observer.
     observe({
       
+      bbox <- st_bbox(filteredData())
+      outline <- st_union(filteredData())
+      
       leafletProxy("map", data = filteredData()) %>%
         clearShapes() %>%
-        addPolygons(fillColor = ~pal(Status), color = "black",
-                    weight = 0.5, fillOpacity = 0.9,
+        flyToBounds(bbox[[1]], bbox[[2]], bbox[[3]], bbox[[4]], options = list()) %>% 
+        addPolygons(data=outline, color = "black",
+                    fillColor = NULL) %>%
+        addPolygons(data=filteredData(),
+                    fillColor = ~pal(Status),
+                    fillOpacity = 0.7,
+                    color = "black",  weight = 0.5, 
+                    dashArray = "1",
+                    popup = paste0("I'M NOT HERE; THIS ISN'T HAPPENING"),
               highlightOptions = highlightOptions(color = "white", weight = 4,
-                                                        bringToFront = TRUE))
+                                                        bringToFront = TRUE)) |> 
+        addMiniMap()
     })
     
-    # Create dropdown based on dynamic value selected in above drop down
     
-   # observe(updateSelectInput(session, "seLect", choices = merge$OPCAT_NAME))
-    
-    # Use a separate observer to recreate the legend as needed.
-    observe({
-      proxy <- leafletProxy("map", data = merge)
-      
-      # Remove any existing legend, and only if the legend is
-      # enabled, create a new one.
-      proxy %>% clearControls()
-      if (input$legend) {
-        pal <- colorpal()
-        proxy %>% addLegend(position = "bottomright",
-                            pal = pal, values = merge$Status
-        )
-        
-      }
-    })
   }
   
   shinyApp(ui, server)
