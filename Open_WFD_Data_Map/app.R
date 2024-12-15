@@ -10,7 +10,9 @@ merge$Year <- as.numeric(merge$Year)
 
 rivers <- read_sf("C:/Users/hg000051/Downloads/oprvrs_essh_gb (1)/data/WatercourseLink.shp") |> st_transform(4326)
 
-# Begin the app  
+# App
+
+# bootstrap page is dynamic so fits whatever size your screen is
 
 ui <- bootstrapPage(
   tags$style(type = "text/css", "html, body {width:100%;height:100%}"),
