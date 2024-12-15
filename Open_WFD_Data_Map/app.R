@@ -62,7 +62,7 @@ library(tidyverse)
         clearShapes() %>%
         flyToBounds(bbox[[1]], bbox[[2]], bbox[[3]], bbox[[4]], options = list()) %>% 
         addPolygons(data=outline, color = "black",
-                    fillColor = NULL) %>%
+                    fillColor = NA) %>%
         addPolygons(data=filteredData(),
                     fillColor = ~pal(Status),
                     fillOpacity = 0.7,
