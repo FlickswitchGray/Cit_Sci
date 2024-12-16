@@ -74,7 +74,9 @@ server <- function(input, output, session) {
                   popup = paste0("I'M NOT HERE; THIS ISN'T HAPPENING"),
                   highlightOptions = highlightOptions(color = "white", weight = 4,
                                                       bringToFront = TRUE)) |> 
-      addMiniMap()
+              clearControls() |> 
+        addLegend(data=filteredData(), pal= pal, values = ~Status,
+                  position = "bottomright") 
   })
   
   
