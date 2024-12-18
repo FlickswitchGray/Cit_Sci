@@ -2,13 +2,16 @@
 
 library(sf)
 library(tidyverse)
+library(leaflet)
+library(shiny)
 
-WFD <- read_sf("C:/Users/hg000051/OneDrive - Defra/Projects/04_Misc_Data/WFD Data/Whole England/Converted_sf_whole_eng.shp")
-Class <- read.csv("C:/Users/hg000051/Downloads/England_classifications (11).csv")
+setwd("C:/Users/hg000051/OneDrive - Defra/Documents/Git/Cit_Sci/Cit_Sci/Open_WFD_Data_Map/")
+WFD <- read_sf("Converted_Whole_Sf_eng.shp")
+Class <- read.csv("England_Classifications.csv")
 merge <- inner_join(WFD, Class, by = c("WB_ID" = "Water.Body.ID"))
 merge$Year <- as.numeric(merge$Year)
 
-rivers <- read_sf("C:/Users/hg000051/Downloads/oprvrs_essh_gb (1)/data/WatercourseLink.shp") |> st_transform(4326)
+#rivers <- read_sf("C:/Users/hg000051/Downloads/oprvrs_essh_gb (1)/data/WatercourseLink.shp") |> st_transform(4326)
 
 # App
 
@@ -40,17 +43,30 @@ server <- function(input, output, session) {
     na.color = "transparent"
   )
   
-  # Reactive expression for the data subsetted to what the user selected
-  filteredData <- reactive({
-    merge %>% filter(OPCAT_NAME == input$OP_Select & Classification.Item == input$Class_Element
-                     & Year == as.numeric(input$seLect))
+  # Conditional input select dropdowns
+  
+  observe({
+    filtered_year <- merge %>% filter(Year == input$seLect)
+    updateSelectInput(
+      session, "Class_Element",
+      choices = sort(unique(filtered_year$Classification.Item)),
+      selected = "Overall Water Body"
+    )
   })
   
+  
+  # Reactive expression for the data subsetted to what the user selected
+  filteredData <- reactive({
+    merge %>% filter(OPCAT_NAME == input$OP_Select,
+                     Classification.Item == input$Class_Element,
+                     Year == as.numeric(input$seLect))
+  })
+  
+  # Basemap set up: Use leaflet() here, and only include aspects of the map that
+  # won't need to change dynamically (at least, not unless the
+  # entire map is being torn down and recreated).
   output$map <- renderLeaflet({
-    # Basemap set up: Use leaflet() here, and only include aspects of the map that
-    # won't need to change dynamically (at least, not unless the
-    # entire map is being torn down and recreated).
-    leaflet(merge) %>% addTiles()
+    leaflet(merge) %>% addProviderTiles(providers$Stadia)
   })
   
   # Interactive changes to the map should be performed in
@@ -58,25 +74,29 @@ server <- function(input, output, session) {
   # should be managed in its own observer.
   observe({
     
-    bbox <- st_bbox(filteredData())
-    outline <- st_union(filteredData())
+    dat <- filteredData()
+    if (nrow(dat) == 0) return()  # Prevent errors if no data matches filters
     
-    leafletProxy("map", data = filteredData()) %>%
+    bbox <- st_bbox(dat)
+    outline <- st_union(dat)
+    
+    leafletProxy("map", data = dat) %>%
       clearShapes() %>%
       flyToBounds(bbox[[1]], bbox[[2]], bbox[[3]], bbox[[4]], options = list()) %>% 
       addPolygons(data=outline, color = "black",
                   fillColor = NA) %>%
-      addPolygons(data=filteredData(),
+      addPolygons(data=dat,
                   fillColor = ~pal(Status),
                   fillOpacity = 0.7,
                   color = "black",  weight = 0.5, 
                   dashArray = "1",
-                  popup = paste0("I'M NOT HERE; THIS ISN'T HAPPENING"),
+                  popup = paste0("<b>",dat$WB_NAME,"<b/>",", ",
+                                 "<b>"," ",dat$Year," ", dat$Status,"</b>", " for",
+                                 "<br><b>",dat$Classification.Item,"</b>"),
                   highlightOptions = highlightOptions(color = "white", weight = 4,
                                                       bringToFront = TRUE)) |> 
-              clearControls() |> 
-        addLegend(data=filteredData(), pal= pal, values = ~Status,
-                  position = "bottomright") 
+      clearControls() |> 
+      addLegend(data=dat, pal= pal, values = ~Status, position = "bottomright") 
   })
   
   
