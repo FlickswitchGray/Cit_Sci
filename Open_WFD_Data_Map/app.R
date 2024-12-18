@@ -5,7 +5,9 @@ library(tidyverse)
 library(leaflet)
 library(shiny)
 
-setwd("C:/Users/hg000051/OneDrive - Defra/Documents/Git/Cit_Sci/Cit_Sci/Open_WFD_Data_Map/")
+unzip("Converted_Whole_Sf_eng.zip")  
+unzip("England_Classifications.zip")  
+
 WFD <- read_sf("Converted_Whole_Sf_eng.shp")
 Class <- read.csv("England_Classifications.csv")
 merge <- inner_join(WFD, Class, by = c("WB_ID" = "Water.Body.ID"))
