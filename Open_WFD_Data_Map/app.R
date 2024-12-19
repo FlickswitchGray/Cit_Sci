@@ -10,6 +10,22 @@ unzip("England_Classifications.zip")
 
 WFD <- read_sf("Converted_Whole_Sf_eng.shp")
 Class <- read.csv("England_Classifications.csv")
+
+
+# Internal version
+#library(pins)
+
+#Cit_Sci_Board <- board_connect()
+
+#WFD <- pin_read(name = "harry.gray@environment-agency.gov.uk/WFD_England",
+ #               board = Cit_Sci_Board)
+
+#Class <- pin_read(name = "harry.gray@environment-agency.gov.uk/WFD_Classifications_England",
+ #                 board = Cit_Sci_Board)
+
+#merge <- inner_join(WFD, Class, by = c("WB_ID" = "Water.Body.ID"))
+#merge$Year <- as.numeric(merge$Year)
+
 merge <- inner_join(WFD, Class, by = c("WB_ID" = "Water.Body.ID"))
 merge$Year <- as.numeric(merge$Year)
 
